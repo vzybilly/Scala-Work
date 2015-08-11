@@ -1,9 +1,5 @@
 //Made by vzybilly.
 
-//Remember to $ git push origin master
-//Remember to $ git push origin master
-//Remember to $ git push origin master
-
 import sys.process._ //this is good as is, I think all are used anyway.
 import java.util.Scanner
 import java.util.ArrayList
