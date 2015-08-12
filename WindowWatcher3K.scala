@@ -465,36 +465,39 @@ object WindowWatcher3K {
       //this will be used to clean up notifications and other things, helping to merge more titles down.
       buildName_CleanNotifications
     }
-    def buildName_CleanNotifications():Unit={
+    def buildName_CleanNotifications_Stub(open:Int, close:Int):Unit={
+      try{
+        var noticon:Int = java.lang.Integer.parseInt(base.substring(open+1, close).trim)
+        noticon = 0 //it was a number, but lets use it for tracking purposes.
+        //bit 0 = space after, bit 1 = space before. 0=none, 1=after, 2=before, 3=wrapped, no other values can be present!
+        if(base.charAt(close+1)==' '){noticon += 1}
+        if(base.charAt(open-1)==' '){noticon += 2}
+        //this can be switched for a switch... don't remember scala switch though...
+        if(noticon==0){
+          base = base.substring(0,open) + base.substring(close+1)
+        } else if(noticon==2){
+          base = base.substring(0,open-1) + base.substring(close+1)
+        } else {//3 && 1
+          base = base.substring(0,open) + base.substring(close+2)
+        }
+      }catch{
+        case dontCare:NumberFormatException => return
+        case re:RuntimeException => println("Error: ["+base+"] -> "+re)
+      }
+    }
+    def buildName_CleanNotifications()={
       //this method should now rip all numbers in parens out of the titles!
       var base2:String = ""
       var open:Int = base.indexOf("(")
-      var closed:Int = base.indexOf(")")
-      while(closed>=0){
-        if(open>=0 && closed>0 && closed > open){
-          try{
-            var noticon:Int = java.lang.Integer.parseInt(base.substring(open+1, closed).trim)
-            noticon = 0 //it was a number, but lets use it for tracking purposes.
-            //bit 0 = space after, bit 1 = space before. 0=none, 1=after, 2=before, 3=wrapped, no other values can be present!
-            if(base.charAt(closed+1)==' '){noticon += 1}
-            if(base.charAt(open-1)==' '){noticon += 2}
-            //this can be switched for a switch... don't remember scala switch though...
-            if(noticon==0){
-              base = base.substring(0,open) + base.substring(closed+1)
-            } else if(noticon==2){
-              base = base.substring(0,open-1) + base.substring(closed+1)
-            } else {//3 && 1
-              base = base.substring(0,open) + base.substring(closed+2)
-            }
-          }catch{
-            case dontCare:NumberFormatException => return
-            case re:RuntimeException => println("Error: ["+base+"] -> "+re)
-          }
+      var close:Int = base.indexOf(")")
+      while(close>=0){
+        if(open>=0 && close>0 && close > open){
+          buildName_CleanNotifications_Stub(open, close)
         }
-        base2 = base.substring(0, closed+1)
-        base = base.substring(closed+1)
+        base2 = base2 + base.substring(0, close+1)
+        base = base.substring(close+1)
         open = base.indexOf("(")
-        closed = base.indexOf(")")
+        close = base.indexOf(")")
       }
       base = base2 + base
     }
