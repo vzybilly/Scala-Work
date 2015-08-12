@@ -466,30 +466,37 @@ object WindowWatcher3K {
       buildName_CleanNotifications
     }
     def buildName_CleanNotifications():Unit={
-      //this will only pick up the first set!
-      //IE: 1:"inbox(email) (0)" + 1:"inbox(email) (1)" -> 1:"inbox(email) (0)" + 1:"inbox(email) (1)"!!! should be 2:"inbox(email)"!!!
+      //this method should now rip all numbers in parens out of the titles!
+      var base2:String = ""
       var open:Int = base.indexOf("(")
       var closed:Int = base.indexOf(")")
-      if(open>=0 && closed>0 && closed > open){
-        try{
-          var noticon:Int = java.lang.Integer.parseInt(base.substring(open+1, closed).trim)
-          noticon = 0 //it was a number, but lets use it for tracking purposes.
-          //bit 0 = space after, bit 1 = space before. 0=none, 1=after, 2=before, 3=wrapped, no other values can be present!
-          if(base.charAt(closed+1)==' '){noticon += 1}
-          if(base.charAt(open-1)==' '){noticon += 2}
-          //this can be switched for a switch... don't remember scala switch though...
-          if(noticon==0){
-            base = base.substring(0,open) + base.substring(closed+1)
-          } else if(noticon==2){
-            base = base.substring(0,open-1) + base.substring(closed+1)
-          } else {//3 && 1
-            base = base.substring(0,open) + base.substring(closed+2)
+      while(closed>=0){
+        if(open>=0 && closed>0 && closed > open){
+          try{
+            var noticon:Int = java.lang.Integer.parseInt(base.substring(open+1, closed).trim)
+            noticon = 0 //it was a number, but lets use it for tracking purposes.
+            //bit 0 = space after, bit 1 = space before. 0=none, 1=after, 2=before, 3=wrapped, no other values can be present!
+            if(base.charAt(closed+1)==' '){noticon += 1}
+            if(base.charAt(open-1)==' '){noticon += 2}
+            //this can be switched for a switch... don't remember scala switch though...
+            if(noticon==0){
+              base = base.substring(0,open) + base.substring(closed+1)
+            } else if(noticon==2){
+              base = base.substring(0,open-1) + base.substring(closed+1)
+            } else {//3 && 1
+              base = base.substring(0,open) + base.substring(closed+2)
+            }
+          }catch{
+            case dontCare:NumberFormatException => return
+            case re:RuntimeException => println("Error: ["+base+"] -> "+re)
           }
-        }catch{
-          case dontCare:NumberFormatException => return
-          case re:RuntimeException => println("Error: ["+base+"] -> "+re)
         }
+        base2 = base.substring(0, closed+1)
+        base = base.substring(closed+1)
+        open = base.indexOf("(")
+        closed = base.indexOf(")")
       }
+      base = base2 + base
     }
     //build this window from the raw information
     def build():Unit={
