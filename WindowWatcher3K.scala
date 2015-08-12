@@ -253,8 +253,8 @@ object WindowWatcher3K {
     //val innerLoopTime = System.currentTimeMillis-windowListTime
     //now that we did all the work with the new list of windows, update the GUI to reflect our perfection~<3
     updateGUI //20MS
-    if(debug){
-      println("Loop took "+(System.currentTimeMillis-loopStartTime)+"MS to complete! Window List Time: "+windowListTime)//150ish MS to complete!
+    if(debug&& !debug){//turn this back on when messing with window.build
+      println("Loop took "+(System.currentTimeMillis-loopStartTime)+"MS to complete! Window List Time: "+windowListTime)
     }
   }
   def shutDownHook()={
@@ -448,7 +448,7 @@ object WindowWatcher3K {
       Titles = new PriorityArrayList[String]
       //we want duplicate names added to only increase the 'priority' of the name by one.
       Titles.duplicatesIncreasePriority = true
-      //add it to our most common, we should be able to remove the startTitle var!
+      //add it to our most common
       Titles.addRaw(base)
       //if this pid is actually useful
       if(PID!=0){
@@ -459,6 +459,36 @@ object WindowWatcher3K {
         //otherwise, say that we don't know.
         //this should be unique enough, not many windows don't have a pid on my system... if it ever comes up, add more info to this.
         Owner = "UNKOWN, WID"+ID
+      }
+    }
+    def buildName()={
+      //this will be used to clean up notifications and other things, helping to merge more titles down.
+      buildName_CleanNotifications
+    }
+    def buildName_CleanNotifications():Unit={
+      //this will only pick up the first set!
+      //IE: 1:"inbox(email) (0)" + 1:"inbox(email) (1)" -> 1:"inbox(email) (0)" + 1:"inbox(email) (1)"!!! should be 2:"inbox(email)"!!!
+      var open:Int = base.indexOf("(")
+      var closed:Int = base.indexOf(")")
+      if(open>=0 && closed>0 && closed > open){
+        try{
+          var noticon:Int = java.lang.Integer.parseInt(base.substring(open+1, closed).trim)
+          noticon = 0 //it was a number, but lets use it for tracking purposes.
+          //bit 0 = space after, bit 1 = space before. 0=none, 1=after, 2=before, 3=wrapped, no other values can be present!
+          if(base.charAt(closed+1)==' '){noticon += 1}
+          if(base.charAt(open-1)==' '){noticon += 2}
+          //this can be switched for a switch... don't remember scala switch though...
+          if(noticon==0){
+            base = base.substring(0,open) + base.substring(closed+1)
+          } else if(noticon==2){
+            base = base.substring(0,open-1) + base.substring(closed+1)
+          } else {//3 && 1
+            base = base.substring(0,open) + base.substring(closed+2)
+          }
+        }catch{
+          case dontCare:NumberFormatException => return
+          case re:RuntimeException => println("Error: ["+base+"] -> "+re)
+        }
       }
     }
     //build this window from the raw information
@@ -474,6 +504,7 @@ object WindowWatcher3K {
       PID = java.lang.Integer.parseInt(base.substring(0,base.indexOf(" ")))
       base = base.substring(base.indexOf(" ")+1).trim
       base = base.substring(base.indexOf(" ")+1)
+      buildName
     }
     //Some type of magic happens here... not to sure but it does what's needed.
     def canEqual(a:Any)=a.isInstanceOf[WindowWorker]
