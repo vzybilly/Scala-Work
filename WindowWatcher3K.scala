@@ -235,7 +235,7 @@ object WindowWatcher3K {
     }
   }
   def doLoop()={
-    //val loopStartTime = System.currentTimeMillis
+    val loopStartTime = System.currentTimeMillis
     //we're working, reflect the tick!
     ticks = ticks + 1
     //System time passed since starting.
@@ -244,7 +244,7 @@ object WindowWatcher3K {
     tickOffset = ticks - realTicks
     //these are the windows open right 'now'
     var windows: Array[WindowWorker] = buildList//this takes 100+ MS to complete, the entire method time is here!
-    //val windowListTime = System.currentTimeMillis-loopStartTime
+    val windowListTime = System.currentTimeMillis-loopStartTime
     //for each of our new windows, if we have it, update the old with the new, else, add it.
     //this loop runs on O(n^2) FIX IT!!!!
     for(item:WindowWorker <- windows){
@@ -253,7 +253,9 @@ object WindowWatcher3K {
     //val innerLoopTime = System.currentTimeMillis-windowListTime
     //now that we did all the work with the new list of windows, update the GUI to reflect our perfection~<3
     updateGUI //20MS
-    //println("Loop took "+(System.currentTimeMillis-loopStartTime)+"MS to complete! Window List Time: "+windowListTime)//150ish MS to complete!
+    if(debug){
+      println("Loop took "+(System.currentTimeMillis-loopStartTime)+"MS to complete! Window List Time: "+windowListTime)//150ish MS to complete!
+    }
   }
   def shutDownHook()={
     //if we haven't already got someone working on this and if it isn't to soon to count, work this method.
