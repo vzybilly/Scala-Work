@@ -513,7 +513,11 @@ object WindowWatcher3K {
       //the pid registered with this window
       PID = java.lang.Integer.parseInt(base.substring(0,base.indexOf(" ")))
       base = base.substring(base.indexOf(" ")+1).trim
-      base = base.substring(base.indexOf(" ")+1)
+      //get the next space.
+      val index  = base.indexOf(" ")
+      //If there is no next space, this window has no window name!
+      if(index < 0){base = "!!No Window Name:"+ID+"!!"}
+      base = base.substring(index+1)
       buildName
     }
     //Some type of magic happens here... not to sure but it does what's needed.
