@@ -14,6 +14,7 @@ import javax.swing.SwingUtilities
 import javax.swing.JOptionPane
 import javax.swing.JSlider
 import java.awt.BorderLayout
+import java.util.concurrent.LinkedBlockingQueue
 
 object WindowWatcher3K {
   //the list of windows this session.
@@ -39,18 +40,42 @@ object WindowWatcher3K {
   var skipSleepWhenBelowThisTickOffset = -.75*sleepTime
   //Are we debugging the program? (Has a GUI button to toggle!)
   var debug:Boolean = false
+  //Used to pass window info from our main loop to our secondary thread!
+  val windowsToProccess:LinkedBlockingQueue[RawWindowLoading] = new LinkedBlockingQueue[RawWindowLoading](42000)
+  //Secondary thread used to proccess the windows and update the GUI!
+  val windowsProccessor:WindowProccessingThread = new WindowProccessingThread
   //the main label that gets all the programs listed and such
   val guiLabel:JLabel = new JLabel("")
   //a label at the top of the window to tell how long we've been running, mostly used to tell if the program lagged.
-  var guiTimeLabel:JLabel = new JLabel("")
+  val guiTimeLabel:JLabel = new JLabel("")
   //the string to prepend to the guiTimeLabel. more is added at INIT!
-  var guiTimeLabelString:String = "Time started: "
+  var guiTimeLabelString:String = "started: "
   //our stock name limit for most common name of windows.
   //Load from file!
   var guiNameLimit:Int = 30
   //the slider that will update the name limit. see if we can add this back inline!
   val guiNameLimitSlider:JSlider = new JSlider(javax.swing.SwingConstants.HORIZONTAL, 10, 100, guiNameLimit)
+  //when guiUpdateTicks is >= to this, actually update GUI
+  var guiUpdateEveryXTicks:Int = 2
+  //Counter for how many times the GUI has been called, resets every time it updates.
+  var guiUpdateTicks:Int = 0
 
+  class WindowProccessingThread extends Thread{
+    override def run{
+      //we want this to run forevers.
+      while(true){
+        //windowsToProccess.take will wait till there in one to take!
+        var windows: Array[WindowWorker] = buildList(windowsToProccess.take)
+        //for each of our new windows, if we have it, update the old with the new, else, add it.
+        //this loop runs on O(n^2) FIX IT!!!!
+        for(item:WindowWorker <- windows){
+          addWindowtoList(item)
+        }
+        //now that we did all the work with the new list of windows, update the GUI to reflect our perfection~<3
+        updateGUI
+      }
+    }
+  }
 
   def main(args: Array[String]) = {
     //add our shutdown hook
@@ -58,15 +83,13 @@ object WindowWatcher3K {
     Runtime.getRuntime.addShutdownHook(new Thread{override def run{WindowWatcher3K.shutDownHook}})
     //load up data file.
     //add junk to the time label prepending string.
-    guiTimeLabelString+=new java.text.SimpleDateFormat("yyyy/MM/dd HH:mm:ss").format(new java.util.Date())+". Time ellapsed: "
+    guiTimeLabelString+=new java.text.SimpleDateFormat("yyyy/MM/dd HH:mm:ss").format(new java.util.Date())+". ellapsed: "
     //later, build the GUI...
     later(buildGUI)
-    //used to keep track of our goal to wake up from sleep.
-    var end:Long = System.currentTimeMillis
+    //start up our proccessor
+    windowsProccessor.start
     //when did we start?
-    startupTime = end
-    //trash local to see how much this time we have to sleep for, keep out here to help with GC!
-    var sleepy:Int = 0
+    startupTime = System.currentTimeMillis
     //we never want to stop!... unless shutting down
     while(!shuttingDown){
       //do our loop.
@@ -79,18 +102,11 @@ object WindowWatcher3K {
         println("Skipping sleep: "+tickBefore+"->"+ticks)
       }
       //this should never get a offset > afew MS! but we are, sometimes more than afew hundread~thousand!
-      //while not there, sleep.
-      while(System.currentTimeMillis < end){
-        //this sleeps for hopefully (100 sleepTime): 33(67)->22(45)->15(30)->10(20)->6(14)->4(10)->3(7)->2(5)->1(4)->1(3)->1(2)->0...
-        sleepy = (end - System.currentTimeMillis).toInt/3
-        //for some reason, we have an occasional error with .sleep(<0)...
-        if(sleepy > 10){
-          //sleep.
-          Thread.sleep(sleepy)
-        }
-      }
-      //this sets our goal to 100 + our last, helps keep the clock in sync!
-      end += sleepTime//when will our next sleep end?
+      //is our skip sleep giving us this result? it is very odd to be having...
+      //See if the bug above is still happening, see about possible fixes.
+
+      //sleep.
+      Thread.sleep(sleepTime/10)
     }
   }
   def buildGUI()={
@@ -196,7 +212,12 @@ object WindowWatcher3K {
         additionalPayload+
       "</tr>"
   }
-  def updateGUI()={
+  def updateGUI():Unit={
+    guiUpdateTicks %= guiUpdateEveryXTicks
+    guiUpdateTicks += 1
+    if(guiUpdateTicks != 1){
+      return
+    }
     //this is our init string for the label. gets the headers and table made.
     var guiHTMLGiantString = "<html><table border=\"1\" style=\"width:100%\">"+
       "<tr><th>Most Common Name</th><th>App Name</th><th>Time Open</th><th>Time Focused</th></tr>"
@@ -206,15 +227,8 @@ object WindowWatcher3K {
     }
     //set the label to our table and close the table at the same time.
     guiLabel.setText(guiHTMLGiantString + "</table></html>")
-    //if debugging, add the current offset info, seems to hang out around 2MS after going for 30~40 seconds... stays there. FIX!
-    var additionalPayload:String = ""
-    if(debug){additionalPayload = " Off by: " + tickOffset + " Ticks."}
-    //update our time label.
-    guiTimeLabel.setText(guiTimeLabelString + buildTime(realTicks) + " Time from Ticks: "+ buildTime(ticks) + additionalPayload)
   }
-  def addWindowtoList(item:WindowWorker)={
-    //have we found it in our list, this would make a great thing to AND with in our for loop up next.
-    var found:Boolean = false
+  def addWindowtoList(item:WindowWorker):Unit={
     //This could be made to exit as soon as found.
     for( index <- 0 until windowList.size) {
       //the current one we are testing, we should probably move this out of the loop to help with GC... probably wouldn't.
@@ -224,36 +238,38 @@ object WindowWatcher3K {
         //this is our new item, update the old with the new
         cur.update(item)
         //we did find it~
-        found = true
+        return
       }
     }
-    //if we didn't find the item, then we have a new window to add to our list~
-    if(!found){
-      //finish contructing out item!
-      item.buildIsNew
-      //so add it.
-      windowList.add(item)
-    }
+    //we didn't find the item, then we have a new window to add to our list~
+    //finish contructing out item!
+    item.buildIsNew
+    //so add it.
+    windowList.add(item)
   }
-  def doLoop(time:Boolean)={
+  def doLoop(time:Boolean):Unit={
     val loopStartTime = System.currentTimeMillis
-    //we're working, reflect the tick!
-    ticks = ticks + 1
     //System time passed since starting.
     realTicks = (System.currentTimeMillis-startupTime).toInt/sleepTime
     //How are we comparing?
     tickOffset = ticks - realTicks
+    if(tickOffset > 0){return}
+    //we're working, reflect the tick!
+    ticks = ticks + 1
+    //if debugging, add the current offset info, seems to hang out around 2MS after going for 30~40 seconds... stays there. FIX!
+    var additionalPayload:String = ""
+    if(debug){additionalPayload = " Off by: " + tickOffset + " Ticks."}
+    //update our time label.
+    guiTimeLabel.setText(guiTimeLabelString + buildTime(realTicks) + " from Ticks: "+ buildTime(ticks) + additionalPayload)
+    //I would say to spawn threads for this but I don't think that would be the best of ways, it would lag more under load.
+    val currentWindows:RawWindowLoading = new RawWindowLoading
     //these are the windows open right 'now'
-    var windows: Array[WindowWorker] = buildList//this takes 100+ MS to complete, the entire method time is here!
+    currentWindows.build
+    //add it to the list for the proccessor to work on.
+    windowsToProccess.put(currentWindows)
+    //the getting windows can still take to long when under to much load.
+    //maybe have another thread pool (10+?) that waits like the proccessor and all we do is add the new class into it and the threads build?
     val windowListTime = System.currentTimeMillis-loopStartTime
-    //for each of our new windows, if we have it, update the old with the new, else, add it.
-    //this loop runs on O(n^2) FIX IT!!!!
-    for(item:WindowWorker <- windows){
-      addWindowtoList(item)
-    }
-    //val innerLoopTime = System.currentTimeMillis-windowListTime
-    //now that we did all the work with the new list of windows, update the GUI to reflect our perfection~<3
-    updateGUI //20MS
     //This will now print when we skip sleeps! (when under load?)
     if(time || (debug && !debug)){//turn this back on when messing with window.build
       println("Loop took "+(System.currentTimeMillis-loopStartTime)+"MS to complete! Window List Time: "+windowListTime)
@@ -265,7 +281,13 @@ object WindowWatcher3K {
       //tell everyone else that we are handling this!
       shuttingDown = true
       //print out some additional data for our terminal lovers~
-      println("Shutting down. Clock = "+ sleepTime+", Ticks = "+ticks)
+      println("Shutting down.")
+      //wait for our proccessing que to finish
+      while(!windowsToProccess.isEmpty){
+        println("Waiting on proccessor.")
+        Thread.sleep(sleepTime)
+      }
+      println("Clock = "+ sleepTime+", Ticks = "+ticks)
       //we should probably move this to the top list of vars/vals... second time we use it... but first is in INIT so twice in entire run...
       val format = new java.text.SimpleDateFormat("yyyy-MM-dd_HH-mm-ss")
       //make our new output file of what we found this time~
@@ -309,28 +331,32 @@ object WindowWatcher3K {
       System.exit(0)
     }}
   }
-  def buildList(): Array[WindowWorker] = {
+  //used to hold the results of a poll of the current windows and which is currently active.
+  class RawWindowLoading{
     //our active window ID, init to our super special random number to know if it errored.
-    var activeWindowID: Int = -83
-    try{
-      //actually set our active window ID
-      activeWindowID = Integer.parseInt(("xdotool getactivewindow" !!).trim)
-    }catch{
-      //this happens often ish... might be when no window is focused, at which point it works perfectly and we can remove this println.
-      case re:RuntimeException => println("Active Window Error: "+re.toString)
-    }
+    var activeID:Int = -83
     //our list of windows, thianks to wmctrl, init to nothing because errors.
     var windows:String = ""
-    try{
-      //try to get the list of windows.
-      windows = ("wmctrl -lp" !!)//5~20, about as long as the first call above.
-    }catch{
-      //oh noes, there was an error, return no list because we have to return a list!
-      case re:RuntimeException => println("Window List Error: "+re.toString)
-        return new Array[WindowWorker](0)
+    def build()={
+      try{
+        //actually set our active window ID
+        activeID = Integer.parseInt(("xdotool getactivewindow" !!).trim)
+      }catch{
+        //this happens often ish... might be when no window is focused, at which point it works perfectly and we can remove this println.
+        case re:RuntimeException => println("Active Window Error: "+re.toString)
+      }
+      try{
+        //try to get the list of windows.
+        windows = ("wmctrl -lp" !!)//5~20, about as long as the first call above.
+      }catch{
+        //oh noes, there was an error, return no list because we have to return a list!
+        case re:RuntimeException => println("Window List Error: "+re.toString)
+      }
     }
+  }
+  def buildList(currentWindowSet:RawWindowLoading): Array[WindowWorker] = {
     //split each line (window data) into it's own thing
-    var windowList: Array[String] = windows.split(System.lineSeparator)
+    var windowList: Array[String] = currentWindowSet.windows.split(System.lineSeparator)
     //this is the list of windows that are currently open... to be pulled from above array
     var WindowWorkers: Array[WindowWorker] = new Array[WindowWorker](windowList.length)
     //number of good, valid, windows.
@@ -344,13 +370,18 @@ object WindowWatcher3K {
       try{
         //try to build it
         current.build //This now only builds a part of the window, otherwise it will take 200+MS instead of 0~1 MS!
-        //build worked, set it into the list
-        WindowWorkers(i) = current
-        //we have a good one
-        good = good + 1
+        //check to see if we want this window
+        if(current.wanted) {
+          //we do, lets get it a home and check if it's the focused one~
+          current.focused = currentWindowSet.activeID == current.ID
+          //build worked, set it into the list
+          WindowWorkers(i) = current
+          //we have a good one
+          good = good + 1
+        }
       }catch{
         //this one was bac, tell it that it's broken so it can spell it's secret data.
-        case re:RuntimeException => println(windowList(i))
+        case re:RuntimeException => println("Error ["+windowList(i)+"]: "+re)
       }
     }
     //if we had bad window datas
@@ -372,26 +403,7 @@ object WindowWatcher3K {
       //set our fixed array as our old array.
       WindowWorkers = temp
     }
-    //I don't remember what this is but I think it pulls out stuff like the task bar and hidden perma windows...
-    var unwanted: Int = 0
-    //count the ones we don't want and while we're looping through them, update our focused window.
-    for (i <- 0 until WindowWorkers.length) {
-      if (!WindowWorkers(i).wanted) {
-        unwanted = unwanted + 1
-      }
-      WindowWorkers(i).focused = activeWindowID == WindowWorkers(i).ID
-    }
-    //with yet another array, minus the unwanted ones.
-    var list: Array[WindowWorker] = new Array[WindowWorker](WindowWorkers.length - unwanted)
-    var index: Int = 0
-    for (i <- 0 until WindowWorkers.length) {
-      if (WindowWorkers(i).wanted) {
-        list(index) = WindowWorkers(i)
-        index = index + 1
-      }
-    }
-    //return the third array of windows.
-    return list
+    return WindowWorkers
   }
   class WindowWorker(var base:String){
     //ID of this window, never changes unless window closes!
@@ -440,11 +452,7 @@ object WindowWatcher3K {
         foCounter+=1
       }
       //what was my name this time?
-      var name:String = newMe.base
-      if(name.length>1){
-        //if it's useful, add it~
-        Titles.add(name)
-      }
+      Titles.add(newMe.base)
     }
     def buildIsNew()={
       Titles = new PriorityArrayList[String]
@@ -460,7 +468,7 @@ object WindowWatcher3K {
       }else{
         //otherwise, say that we don't know.
         //this should be unique enough, not many windows don't have a pid on my system... if it ever comes up, add more info to this.
-        Owner = "UNKOWN, WID"+ID
+        Owner = "!!No Proccess ID:"+ID+"!!"
       }
     }
     def buildName()={
