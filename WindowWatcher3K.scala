@@ -70,14 +70,15 @@ object WindowWatcher3K {
     //we never want to stop!... unless shutting down
     while(!shuttingDown){
       //do our loop.
-      doLoop
+      doLoop(false)
       //while we are lagging behind to hard
       while(tickOffset < skipSleepWhenBelowThisTickOffset){
         val tickBefore = ticks
         //loop to catch up!
-        doLoop()
+        doLoop(true)
         println("Skipping sleep: "+tickBefore+"->"+ticks)
       }
+      //this should never get a offset > afew MS! but we are, sometimes more than afew hundread~thousand!
       //while not there, sleep.
       while(System.currentTimeMillis < end){
         //this sleeps for hopefully (100 sleepTime): 33(67)->22(45)->15(30)->10(20)->6(14)->4(10)->3(7)->2(5)->1(4)->1(3)->1(2)->0...
@@ -234,7 +235,7 @@ object WindowWatcher3K {
       windowList.add(item)
     }
   }
-  def doLoop()={
+  def doLoop(time:Boolean)={
     val loopStartTime = System.currentTimeMillis
     //we're working, reflect the tick!
     ticks = ticks + 1
@@ -253,7 +254,8 @@ object WindowWatcher3K {
     //val innerLoopTime = System.currentTimeMillis-windowListTime
     //now that we did all the work with the new list of windows, update the GUI to reflect our perfection~<3
     updateGUI //20MS
-    if(debug&& !debug){//turn this back on when messing with window.build
+    //This will now print when we skip sleeps! (when under load?)
+    if(time || (debug && !debug)){//turn this back on when messing with window.build
       println("Loop took "+(System.currentTimeMillis-loopStartTime)+"MS to complete! Window List Time: "+windowListTime)
     }
   }
