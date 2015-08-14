@@ -44,6 +44,8 @@ object WindowWatcher3K {
   val windowsToProccess:LinkedBlockingQueue[RawWindowLoading] = new LinkedBlockingQueue[RawWindowLoading](42000)
   //Secondary thread used to proccess the windows and update the GUI!
   val windowsProccessor:WindowProccessingThread = new WindowProccessingThread
+  //tells when we are ready to close the program, the proccessor will set this when it is done!
+  var readyToClose:Boolean = false
   //the main label that gets all the programs listed and such
   val guiLabel:JLabel = new JLabel("")
   //a label at the top of the window to tell how long we've been running, mostly used to tell if the program lagged.
@@ -62,18 +64,23 @@ object WindowWatcher3K {
 
   class WindowProccessingThread extends Thread{
     override def run{
-      //we want this to run forevers.
-      while(true){
+      //we want this to run if we are not shutting down or while the que has items.
+      while(!shuttingDown || !windowsToProccess.isEmpty){
         //windowsToProccess.take will wait till there in one to take!
         var windows: Array[WindowWorker] = buildList(windowsToProccess.take)
         //for each of our new windows, if we have it, update the old with the new, else, add it.
-        //this loop runs on O(n^2) FIX IT!!!!
         for(item:WindowWorker <- windows){
           addWindowtoList(item)
         }
         //now that we did all the work with the new list of windows, update the GUI to reflect our perfection~<3
         updateGUI
+        //If we still have more...
+        if(!windowsToProccess.isEmpty){
+          //Give the CPU a break
+          Thread.sleep(5)
+        }
       }
+      readyToClose = true
     }
   }
 
@@ -284,7 +291,11 @@ object WindowWatcher3K {
       println("Shutting down.")
       //wait for our proccessing que to finish
       while(!windowsToProccess.isEmpty){
-        println("Waiting on proccessor.")
+        println("  Waiting on proccessor que: "+windowsToProccess.size)
+        Thread.sleep(sleepTime)
+      }
+      while(!readyToClose){
+        println("  Waiting on proccessor.")
         Thread.sleep(sleepTime)
       }
       println("Clock = "+ sleepTime+", Ticks = "+ticks)
@@ -381,7 +392,7 @@ object WindowWatcher3K {
         }
       }catch{
         //this one was bac, tell it that it's broken so it can spell it's secret data.
-        case re:RuntimeException => println("Error ["+windowList(i)+"]: "+re)
+        case re:RuntimeException => println("Error(Build) ["+windowList(i)+"]: "+re)
       }
     }
     //if we had bad window datas
@@ -475,9 +486,10 @@ object WindowWatcher3K {
       //this will be used to clean up notifications and other things, helping to merge more titles down.
       buildName_CleanNotifications
     }
-    def buildName_CleanNotifications_Stub(open:Int, close:Int):Unit={
+    def buildName_CleanNotifications_Stub(open:Int, close:Int):Int={
       //check to see if a trimmed string inside the open and close parens is a number, if so, rip open to close paren.
       try{
+        var toReturn:Int = 0
         //try to parse it, if parsed then it's a number!
         var noticon:Int = java.lang.Integer.parseInt(base.substring(open+1, close).trim)
         //it was a number, but lets use it for tracking purposes.
@@ -494,36 +506,43 @@ object WindowWatcher3K {
         if(noticon==0){
           //there is no spaces around the parens, return.
           if(base.length > close + 1){
+            toReturn = ((close+1)-open)
             base = base.substring(0,open) + base.substring(close+1)
           }else{
+            toReturn = base.length - open
             base = base.substring(0,open)
           }
         } else if(noticon==2){
           //only a space before, like a notifcation after the title
           if(base.length > close + 1){
+            toReturn = ((close+1)-(open-1))
             base = base.substring(0,open-1) + base.substring(close+1)
           }else{
+            toReturn = base.length - (open - 1)
             base = base.substring(0,open-1)
           }
+          toReturn *= -1
         } else {//3 && 1
           //we're either wrapped with spaces or only have one at the end, either way, lets remove the last one... might cause issues...
           if(base.length > close + 2){
+            toReturn = ((close+2)-open)
             base = base.substring(0,open) + base.substring(close+2)
           }else{
+            toReturn = base.length - open
             base = base.substring(0,open)
           }
         }
+        //tell the lovely people how much we took from the string.
+        return toReturn
       }catch{
         //expected error if not a number, just return because we have nothing to rip.
-        case dontCare:NumberFormatException => return
-        //DID NOT EXPECT THIS!
-        case re:RuntimeException => println("Error: ["+base+"] -> "+re)
+        case dontCare:NumberFormatException => return 0
+        //DID NOT EXPECT THIS! We didn't(?) rip anything!
+        case re:RuntimeException => println("Error(Noti): ["+base+"] -> "+re); return 0
       }
     }
     def buildName_CleanNotifications()={
       //this method should now rip all numbers in parens out of the titles!
-      //Still buggy!
-      //"(3) (5)Tum(9)bl (2) rd(1) (8)" -> "(5)Tumbl rd(1)"
       //holds the name after each rip, used to rebuild after all rips.
       var base2:String = ""
       //the opening of the first paren
@@ -532,29 +551,48 @@ object WindowWatcher3K {
       var close:Int = base.indexOf(")")
       //while there is a closing.
       while(close>=0){
-        //
-        println("["+base+"]: ("+open+","+close+")")
-        //if it's a valid closing, go to stub
-        if(open>=0 && close>0 && close > open){
-          buildName_CleanNotifications_Stub(open, close)
+        //how much did we rip out of the title on this pass?
+        var ripAmount:Int = 0
+        //if we actually have an opening paren.
+        if(open>=0){
+          //if it's a valid closing, go to stub
+          if(close>0 && close > open){
+            ripAmount = buildName_CleanNotifications_Stub(open, close)
+          }
+          //If rip amount is negetive, we removed one before open, 0 is for errors and non numbers alike.
+          if(ripAmount < 0){
+            //shift our open to know... we don't actually use this if we've ripped, which we clearly did... clean up work!
+            open -= 1
+            //fix up our rip amount.
+            ripAmount *= -1
+          }
+          //If we did not rip anything, then we have to move it to another string, otherwise it'll infi loop.
+          if(ripAmount==0){
+            //move the begining part over to base2
+            base2 = base2 + base.substring(0, close + 1)
+            //set the base to the rest
+            if(base.length >= close + 1){
+              base = base.substring(close + 1)
+            }else{
+              base = ""
+            }
+          }
+        }else{//We couldn't actually do anything, go ahead and move the first bit off.
+          // we could probably remove this and move the open>=0 back to the Stub If.
+          base2 = base2 + base.substring(0,close+1)
+          if(base.length>close+1){
+            base = base.substring(close+1)
+          }else{
+            base = ""
+          }
         }
-        println("A")
-        //move the begining part over to base2
-        if(base.length>=close+1){
-          base2 = base2 + base.substring(0, close+1)
-        }
-        println("B")
-        //set the base to the rest
-        if(base.length>=close+1){
-          base = base.substring(close+1)
-        }
-        println("C")
         //update our new first paren group.
         open = base.indexOf("(")
         close = base.indexOf(")")
       }
       //rebuild our base after ripping.
       base = base2 + base
+      println("+ ["+base+"]")
     }
     //build this window from the raw information
     def build():Unit={
