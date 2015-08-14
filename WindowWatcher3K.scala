@@ -68,6 +68,15 @@ object WindowWatcher3K {
       while(!shuttingDown || !windowsToProccess.isEmpty){
         //windowsToProccess.take will wait till there in one to take!
         var windows: Array[WindowWorker] = buildList(windowsToProccess.take)
+        /*
+          Add abit of work here to bubble up the still open windows,
+          just add another flag to them and reset all set flags and while updating set them.
+          new windows should have the flag set automatically.
+          once done, bubble them up.
+          I don't expect many to close instantly so a simple bubble should work...
+          maybe after the add, move up to the last one that's set or first...
+          should work like that and probably won't be to cost heavy.
+        // */
         //for each of our new windows, if we have it, update the old with the new, else, add it.
         for(item:WindowWorker <- windows){
           addWindowtoList(item)
@@ -205,7 +214,8 @@ object WindowWatcher3K {
     if(name.length>guiNameLimit){name=name.substring(0,guiNameLimit)}
     //add the additional names if we are DEBUGGING!
     var additionalPayload:String = ""
-    if(debug){ 
+    if(debug){
+      additionalPayload += "<td>"+item.ID+"</td><td>"+item.PID+"</td>"
       for( index <- 0 until item.getNameCount){
         additionalPayload = additionalPayload + "<td>" + item.getNameTotal(index) + "</td>"
       }
@@ -227,7 +237,11 @@ object WindowWatcher3K {
     }
     //this is our init string for the label. gets the headers and table made.
     var guiHTMLGiantString = "<html><table border=\"1\" style=\"width:100%\">"+
-      "<tr><th>Most Common Name</th><th>App Name</th><th>Time Open</th><th>Time Focused</th></tr>"
+      "<tr><th>Most Common Name</th><th>App Name</th><th>Time Open</th><th>Time Focused</th>"
+    if(debug){
+      guiHTMLGiantString += "<th>Window ID</th><th>App ID</th>"
+    }
+    guiHTMLGiantString += "</tr>"
     //add items to our table
     for( index <- 0 until windowList.size) {
       guiHTMLGiantString=guiHTMLGiantString+buildHTML_FromWindowWorker(windowList.get(index))
@@ -265,7 +279,7 @@ object WindowWatcher3K {
     ticks = ticks + 1
     //if debugging, add the current offset info, seems to hang out around 2MS after going for 30~40 seconds... stays there. FIX!
     var additionalPayload:String = ""
-    if(debug){additionalPayload = " Off by: " + tickOffset + " Ticks."}
+    if(debug){additionalPayload = " Off by: " + tickOffset + " Ticks. Que Size: "+windowsToProccess.size}
     //update our time label.
     guiTimeLabel.setText(guiTimeLabelString + buildTime(realTicks) + " from Ticks: "+ buildTime(ticks) + additionalPayload)
     //I would say to spawn threads for this but I don't think that would be the best of ways, it would lag more under load.
@@ -304,7 +318,7 @@ object WindowWatcher3K {
       //make our new output file of what we found this time~
       val writer = new PrintWriter(new File("WW3K-"+format.format(new java.util.Date )+".log.csv"))
       //this is our header, in csv format... hopefully...
-      val initString:String = "\"Window Title\",\"Window Owner\",\"Seconds Open\",\"Seconds Focused\",\"Additional Names[Ticks, Name]:\""
+      val initString:String = "\"Window Title\",\"Window Owner\",\"Seconds Open\",\"Seconds Focused\",\"WID\",\"PID\",\"Additional Names[Ticks, Name]:\""
       //write to file
       writer.write(initString+System.lineSeparator)
       //write to terminal lovers~
@@ -317,7 +331,9 @@ object WindowWatcher3K {
         val line:String = "\"" + windowList.get(index).getMostCommonTitle() + "\",\"" +
           windowList.get(index).Owner + "\",\"" +
           windowList.get(index).counter / divAmt + "\",\"" +
-          windowList.get(index).foCounter / divAmt+"\"," +
+          windowList.get(index).foCounter / divAmt + "\",\"" +
+          windowList.get(index).ID + "\",\"" +
+          windowList.get(index).PID + "\"," +
           windowList.get(index).getAllNames
         //write to file
         writer.write(line+System.lineSeparator)
@@ -592,7 +608,6 @@ object WindowWatcher3K {
       }
       //rebuild our base after ripping.
       base = base2 + base
-      println("+ ["+base+"]")
     }
     //build this window from the raw information
     def build():Unit={
