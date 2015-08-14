@@ -483,19 +483,35 @@ object WindowWatcher3K {
         //it was a number, but lets use it for tracking purposes.
         noticon = 0
         //bit 0 = space after, bit 1 = space before. 0=none, 1=after, 2=before, 3=wrapped, no other values can be present!
-        //this WILL error if the parens are at the edges!
-        if(base.charAt(close+1)==' '){noticon += 1}
-        if(base.charAt(open-1)==' '){noticon += 2}
+        //bit 2 = closing is the end
+        if(close < base.size-1){
+          if(base.charAt(close+1)==' '){noticon += 1}
+        }
+        if(open>0){
+          if(base.charAt(open-1)==' '){noticon += 2}
+        }
         //this can be switched for a switch... don't remember scala switch though...
         if(noticon==0){
           //there is no spaces around the parens, return.
-          base = base.substring(0,open) + base.substring(close+1)
+          if(base.length > close + 1){
+            base = base.substring(0,open) + base.substring(close+1)
+          }else{
+            base = base.substring(0,open)
+          }
         } else if(noticon==2){
-          //only a space after, like a notifcation after the title
-          base = base.substring(0,open-1) + base.substring(close+1)
+          //only a space before, like a notifcation after the title
+          if(base.length > close + 1){
+            base = base.substring(0,open-1) + base.substring(close+1)
+          }else{
+            base = base.substring(0,open-1)
+          }
         } else {//3 && 1
           //we're either wrapped with spaces or only have one at the end, either way, lets remove the last one... might cause issues...
-          base = base.substring(0,open) + base.substring(close+2)
+          if(base.length > close + 2){
+            base = base.substring(0,open) + base.substring(close+2)
+          }else{
+            base = base.substring(0,open)
+          }
         }
       }catch{
         //expected error if not a number, just return because we have nothing to rip.
@@ -506,6 +522,8 @@ object WindowWatcher3K {
     }
     def buildName_CleanNotifications()={
       //this method should now rip all numbers in parens out of the titles!
+      //Still buggy!
+      //"(3) (5)Tum(9)bl (2) rd(1) (8)" -> "(5)Tumbl rd(1)"
       //holds the name after each rip, used to rebuild after all rips.
       var base2:String = ""
       //the opening of the first paren
@@ -514,14 +532,23 @@ object WindowWatcher3K {
       var close:Int = base.indexOf(")")
       //while there is a closing.
       while(close>=0){
+        //
+        println("["+base+"]: ("+open+","+close+")")
         //if it's a valid closing, go to stub
         if(open>=0 && close>0 && close > open){
           buildName_CleanNotifications_Stub(open, close)
         }
+        println("A")
         //move the begining part over to base2
-        base2 = base2 + base.substring(0, close+1)
+        if(base.length>=close+1){
+          base2 = base2 + base.substring(0, close+1)
+        }
+        println("B")
         //set the base to the rest
-        base = base.substring(close+1)
+        if(base.length>=close+1){
+          base = base.substring(close+1)
+        }
+        println("C")
         //update our new first paren group.
         open = base.indexOf("(")
         close = base.indexOf(")")
