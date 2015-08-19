@@ -32,8 +32,17 @@ class WW3K_GUI(varls:WW3K_Varls){
   var win:JFrame = null
   def close()={
     if(win != null){
-      win.dispose
+      println("Done gui.close if(TRUE)")
+      SwingUtilities.invokeLater(
+        new Runnable{
+          def run(){
+            win.dispose
+          }
+        }
+      )
+      println("Done gui.close DISPOSE")
     }
+    println("Done gui.close DONE")
   }
   def buildLater()={
     //build the window
@@ -81,7 +90,7 @@ class WW3K_GUI(varls:WW3K_Varls){
       win.add(panel)
       win.pack
       //we want this to be DO_NOTHING_ON_CLOSE but it's not actually that... look up!
-      win.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE)
+      win.setDefaultCloseOperation(javax.swing.WindowConstants.DISPOSE_ON_CLOSE)
       win.setVisible(true)
     }
   }
