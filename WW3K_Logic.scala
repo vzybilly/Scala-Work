@@ -140,7 +140,7 @@ class WW3K_Logic(varls:WW3K_Varls){
     //This could be made to exit as soon as found.
     for( index <- 0 until varls.windowList.size) {
       //the current one we are testing, we should probably move this out of the loop to help with GC... probably wouldn't.
-      val cur = varls.windowList.get(index)
+      val cur:WW3K_Window = varls.windowList.get(index)
       //is this our golden item we are currently working on~!?
       if(cur.equals(item)){
         //this is our new item, update the old with the new
