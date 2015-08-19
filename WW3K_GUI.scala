@@ -58,7 +58,7 @@ class WW3K_GUI(varls:WW3K_Varls){
           cntrlPanel.setLayout(new BorderLayout )
           //Bottom Main
           val closeBtn = new JButton("Close?")
-          closeBtn.addActionListener(actionListener(closeBtn))
+          closeBtn.addActionListener(actionListener(closeButton))
           //Bottom Right
           val debugBtn = new JButton("Toggle Debug")
           debugBtn.addActionListener(actionListener(toggleDebug))
@@ -89,8 +89,7 @@ class WW3K_GUI(varls:WW3K_Varls){
       //Finish up building the window.
       win.add(panel)
       win.pack
-      //we want this to be DO_NOTHING_ON_CLOSE but it's not actually that... look up!
-      win.setDefaultCloseOperation(javax.swing.WindowConstants.DISPOSE_ON_CLOSE)
+      win.setDefaultCloseOperation(javax.swing.WindowConstants.DO_NOTHING_ON_CLOSE)
       win.setVisible(true)
     }
   }
@@ -107,7 +106,7 @@ class WW3K_GUI(varls:WW3K_Varls){
     )
   }
   //Happens when the closeBTN is clicked.
-  def closeBtn()={
+  def closeButton()={
     shutDown=true
     varls.logic.shutDownHook
   }
