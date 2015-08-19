@@ -32,7 +32,6 @@ class WW3K_GUI(varls:WW3K_Varls){
   var win:JFrame = null
   def close()={
     if(win != null){
-      println("Done gui.close if(TRUE)")
       SwingUtilities.invokeLater(
         new Runnable{
           def run(){
@@ -40,9 +39,7 @@ class WW3K_GUI(varls:WW3K_Varls){
           }
         }
       )
-      println("Done gui.close DISPOSE")
     }
-    println("Done gui.close DONE")
   }
   def buildLater()={
     //build the window
