@@ -28,27 +28,28 @@ class PriorityArrayList[T](stockPriority:Int=1){
   //ArrayList Method.
   def indexOf(thing:T):Int=arr.indexOf(new PriorityArrayListNode[T](thing))
   //Bubble from location.
-  def bubble(var location:Int)={
+  def bubble(location:Int)={
     //sort method. from updated to begining or bigger priority.
     //are we done with the bubble?
     var done:Boolean = false
+    var at:Int = location
     //while we're not at the beginning and not done.
-    while(location>0&&(!done)){
+    while(at > 0 && (!done)){
       //let's just say this is the last one.
       done = true
       //check if we can move up
-      if(arr.get(location).isBefore(arr.get(location-1))){//we can
+      if(arr.get(at).isBefore(arr.get(at - 1))){//we can
         //nifty swap.
-        arr.set(location, arr.set(location-1, arr.get(location)));
+        arr.set(at, arr.set(at - 1, arr.get(at)));
         //we moved one up.
-        location-=1
+        at -= 1
         //we moved so we're not done.
         done = false
       }
     }
   }
   //Sets the priority of selected Item
-  def setPriority(var index:Int, value:Int)={
+  def setPriority(index:Int, value:Int)={
     arr.get(index).setPriority(value)
     //Bubble the list.
     bubble(index)
