@@ -18,6 +18,8 @@ class WW3K_Window(var base:String, tickDiff:Int, varls:WW3K_Varls){
   var counter:Int = 1 + tickDiff
   //how many times have we seen this window focused on?
   var foCounter:Int = 1 + tickDiff
+  //Have we been used since the last time?
+  var usedLast:Boolean = true
   //sort our names
   def sort()=titles.sort
   //get name X priority
