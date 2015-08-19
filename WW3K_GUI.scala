@@ -28,9 +28,16 @@ class WW3K_GUI(varls:WW3K_Varls){
   var updateEveryXTicks:Int = 2
   //Counter for how many times the GUI has been called, resets every time it updates.
   var updateTicks:Int = 0
+  //used to kill frame in the exit.
+  var win:JFrame = null
+  def close()={
+    if(win != null){
+      win.dispose
+    }
+  }
   def buildLater()={
     //build the window
-    val win = new JFrame("Window Watcher 3,000!");{
+    win = new JFrame("Window Watcher 3,000!");{
       //build the main panel of window
       val panel:JPanel = new JPanel ;{
         panel.setLayout(new BorderLayout )
