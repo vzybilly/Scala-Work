@@ -1,8 +1,8 @@
 
 import sys.process._
 
-import javax.swing.JFrame
-import javax.swing.JEditorPane
+import javax.swing._
+import java.util._
 import javax.swing.event.HyperlinkListener
 import javax.swing.event.HyperlinkEvent
 
@@ -15,6 +15,13 @@ object Tester{
       }
     }
   }
+  def ripThrowable(e:Throwable):String={
+    if(e == null){
+      return ""
+    }else{
+      return e.getMessage+"<hr>"+ripThrowable(e.getCause)
+    }
+  }
   def linkWorker(url:String)={
     test = !test
     textPane.setText( if (test) stringOn else  stringOff )
@@ -25,6 +32,14 @@ object Tester{
   val stringOn:String = "<html><a href=\"test\">testing On.</a>"
   //The main method.
   def main(args: Array[String])={
+    try{
+      (new ArrayList[String]).get(83)
+    }
+    catch{
+      case re:Throwable => println("ERROR IN MAIN LOOP: "+re);println;re.printStackTrace
+        JOptionPane.showMessageDialog(null, "<html>See log/terminal for more information:"+ripThrowable(re),
+          "Title", JOptionPane.ERROR_MESSAGE);
+    }
     //Test out http://docs.oracle.com/javase/7/docs/api/javax/swing/JTextPane.html Or JEditorPane
     //It might have some fun with making HTML windows in java for my entire program GUI!
     //the HTML for the window
