@@ -201,6 +201,8 @@ class WW3K_Logic(varls:WW3K_Varls){
       writer.flush()
       //close the file.
       writer.close()
+      //Close the GUI
+      varls.gui.close()
       //if the GUI is doing this shut down, then~
       if(varls.gui.shutDown){
         //ask if they want to shut down the whole computer, HANDLED BY OUTSIDE SCRIPT WRAPPER!
