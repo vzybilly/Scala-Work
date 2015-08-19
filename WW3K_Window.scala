@@ -51,6 +51,8 @@ class WW3K_Window(var base:String, tickDiff:Int, varls:WW3K_Varls){
     }
     //what was my name this time?
     titles.add(newMe.base)
+    //we were used!
+    usedLast = true
   }
   def buildIsNew()={
     titles = new PriorityArrayList[String]
