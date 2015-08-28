@@ -34,15 +34,12 @@ class WW3K_Varls{
   //How many ticks have we completed?
   var proccessedTicks:Int = 0
   //Are we debugging the program? (Has a GUI button to toggle!)
-  /*
-    !Split the debug out into multiple, one for each.
-    !All the current debugs should be changed to (debug || <Specific Debug>)
-    !the var below will be used to tell if debugAll is on.
-    !also use a debugNew for when we make a new item to debug but haven't added it to the GUI yet.
-    !speaking of the debugGUI, the button should spawn a popup that has a list of combo boxes to check!
-    !Good use of a full HTML window! look at tester where we want to test it out~!
-  // */
   var debug:Boolean = false
+  var debugTickOffset:Boolean = false
+  var debugQueSize:Boolean = false
+  var debugWID:Boolean = false
+  var debugPID:Boolean = false
+  var debugOtherNames:Boolean = false
   //Used to pass window info from our main loop to our secondary thread!
   val windowsToProccess:LinkedBlockingQueue[WW3K_RawWindowLoading] = new LinkedBlockingQueue[WW3K_RawWindowLoading](42000)
 }
