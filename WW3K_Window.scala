@@ -25,7 +25,7 @@ class WW3K_Window(var base:String, tickDiff:Int, varls:WW3K_Varls)extends Ordere
     //negetive is us first
     //positive is them first
     if(usedLast == other.usedLast){
-      if(count!=other.count){
+      if(counter!=other.counter){
         return other.counter - counter
       }else{
         return other.foCounter - foCounter
