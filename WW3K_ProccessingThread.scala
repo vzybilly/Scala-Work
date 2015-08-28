@@ -27,11 +27,10 @@ class WW3K_ProccessingThread(varls:WW3K_Varls) extends Thread{
       for(item:WW3K_Window <- windows){
         varls.logic.addWindowtoList(item)
       }
+      //If we have a new or lost a window, we need to sort our list.
       if(lastUsed != windows.length){
-        /*
-          Add abit of work here to bubble up the still open windows,
-          once done, bubble them up.
-        // */
+        //we have to sort our list now.
+        java.util.Collections.sort(varls.windowList)
       }
       //now that we did all the work with the new list of windows, update the GUI to reflect our perfection~<3
       varls.gui.update
