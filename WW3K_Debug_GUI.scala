@@ -5,6 +5,7 @@ import javax.swing.JFrame
 import javax.swing.JButton
 import javax.swing.JPanel
 import javax.swing.SwingUtilities
+import java.awt.BorderLayout
 
 //Used to work the Debug GUI, to set and unset the debug options.
 class WW3K_Debug_GUI(varls:WW3K_Varls){
@@ -33,6 +34,12 @@ class WW3K_Debug_GUI(varls:WW3K_Varls){
       frame.setVisible(!frame.isVisible)
     }
   }
+  //build a action listener that calls a function we pass to this.
+  def actionListener(f: =>Unit)=new java.awt.event.ActionListener{//Stolen from GUI class.
+    def actionPerformed(e:java.awt.event.ActionEvent){
+      f
+    }
+  }
   //our main GUI window
   var frame:JFrame = null
   def buildWindow():JFrame={
@@ -44,8 +51,28 @@ class WW3K_Debug_GUI(varls:WW3K_Varls){
     win.setVisible(false)
     return win
   }
+  var debugBtn:JButton = null
   def buildPanel:JPanel={
     //build the panel of the window.
-    return null
+    val panel:JPanel = new JPanel
+    panel.setLayout(new BorderLayout )
+    //build the button on this panel
+    debugBtn = new JButton("Global Debug: " + varls.debug)
+    debugBtn.addActionListener(actionListener(btnToggleMain))
+    //Main
+    panel.add(buildMainPanel, BorderLayout.CENTER)
+    //Bottom
+    panel.add(debugBtn, BorderLayout.PAGE_END)
+    return panel
+  }
+  def buildMainPanel:JPanel={
+    //build the panel of the window.
+    val panel:JPanel = new JPanel
+    return panel
+  }
+  //button methods.
+  def btnToggleMain()={
+    varls.debug = !varls.debug
+    debugBtn.setText("Global Debug: " + varls.debug)
   }
 }
