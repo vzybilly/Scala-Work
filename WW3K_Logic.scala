@@ -19,11 +19,83 @@ class WW3K_Logic(varls:WW3K_Varls){
     //when did we start?
     varls.startupTime = System.currentTimeMillis
     //we never want to stop!... unless shutting down
-    while(!varls.shuttingDown){
-      //do our loop.
-      doLoop()
-      //sleep.
-      Thread.sleep(varls.sleepTime/10)
+    try{
+      while(!varls.shuttingDown){
+        //do our loop.
+        doLoop()
+        //sleep.
+        Thread.sleep(varls.sleepTime/10)
+      }
+    }catch{
+      case re:Throwable => println("ERROR IN MAIN LOOP: "+re);println;re.printStackTrace
+        JOptionPane.showMessageDialog(null, "<html>See log/terminal for more information:"+ripThrowable(re),
+          "WW3K - Error in main Loop!", JOptionPane.ERROR_MESSAGE);
+    }
+
+
+    //print out some additional data for our terminal lovers~
+    println("Shutting down.")
+    //wait for our proccessing que to finish
+    while(varls.proccessedTicks < varls.ticks){
+      println("  Waiting on proccessor. que count: "+varls.windowsToProccess.size)
+      Thread.sleep(varls.sleepTime)
+    }
+    if(varls.windowsProccessor.isAlive){
+      varls.windowsProccessor.interrupt
+    }
+    println("Clock = "+ varls.sleepTime+", Ticks = "+varls.ticks)
+    //we should probably move this to the top list of vars/vals... second time we use it... but first is in INIT so twice in entire run...
+    val format = new java.text.SimpleDateFormat("yyyy-MM-dd_HH-mm-ss")
+    //make our new output file of what we found this time~
+    val writer = new PrintWriter(new File("WW3K-"+format.format(new java.util.Date )+".log.csv"))
+    //this is our header, in csv format... hopefully...
+    val initString:String = "\"Window Title\",\"Window Owner\",\"Seconds Open\",\"Seconds Focused\",\"WID\",\"PID\",\"Additional Names[Ticks, Name]:\""
+    //write to file
+    writer.write(initString+System.lineSeparator)
+    //write to terminal lovers~
+    println(initString)
+    //for each window we logged this session:
+    for (index <- 0 until varls.windowList.size) {
+      //tell it to sort itself out (the window names... this probably isn't needed any more.)
+      val cur:WW3K_Window = varls.windowList.get(index)
+      cur.sort
+      //and build the line to output.
+      val line:String = "\"" + cur.getMostCommonTitle() + "\",\"" +
+        cur.Owner + "\",\"" +
+        cur.counter / varls.divAmt + "\",\"" +
+        cur.foCounter / varls.divAmt + "\",\"" +
+        cur.ID + "\",\"" +
+        cur.PID + "\"," +
+        cur.getAllNames
+      //write to file
+      writer.write(line+System.lineSeparator)
+      //write to terminal lovers~
+      println(line)
+    }
+    //flush the file before closing
+    writer.flush()
+    //close the file.
+    writer.close()
+    //Close the GUI
+    varls.gui.close()
+    //if the GUI is doing this shut down, then~
+    if(varls.gui.shutDown){
+      //ask if they want to shut down the whole computer, HANDLED BY OUTSIDE SCRIPT WRAPPER!
+      val n:Int = JOptionPane.showConfirmDialog(null, "Shut Down whole computer?","Shut Down whole computer?",JOptionPane.YES_NO_OPTION);
+      //if yes, Exit with 1, our sign to the script wrapper that we wanted to shut down.
+      if (n == JOptionPane.YES_OPTION) {System.exit(1)
+      } else if (n == JOptionPane.NO_OPTION) {//they said no, I have nothing to do
+      } else {//they just closed the window on me :<
+      }
+    }
+    //exit normally.
+    System.exit(0)
+  }
+  def ripThrowable(e:Throwable):String={
+    if(e == null){
+      return ""
+    }else{
+      return e.getMessage+"<hr>"+ripThrowable(e.getCause)
     }
   }
   //tick.
@@ -157,64 +229,6 @@ class WW3K_Logic(varls:WW3K_Varls){
   }
   //shut down the program.
   def shutDownHook()={
-    //if we haven't already got someone working on this and if it isn't to soon to count, work this method.
-    if(!varls.shuttingDown){if(varls.ticks > 10){
-      //tell everyone else that we are handling this!
-      varls.shuttingDown = true
-      //print out some additional data for our terminal lovers~
-      println("Shutting down.")
-      //wait for our proccessing que to finish
-      while(varls.proccessedTicks < varls.ticks){
-        println("  Waiting on proccessor. que count: "+varls.windowsToProccess.size)
-        Thread.sleep(varls.sleepTime)
-      }
-      println("Clock = "+ varls.sleepTime+", Ticks = "+varls.ticks)
-      //we should probably move this to the top list of vars/vals... second time we use it... but first is in INIT so twice in entire run...
-      val format = new java.text.SimpleDateFormat("yyyy-MM-dd_HH-mm-ss")
-      //make our new output file of what we found this time~
-      val writer = new PrintWriter(new File("WW3K-"+format.format(new java.util.Date )+".log.csv"))
-      //this is our header, in csv format... hopefully...
-      val initString:String = "\"Window Title\",\"Window Owner\",\"Seconds Open\",\"Seconds Focused\",\"WID\",\"PID\",\"Additional Names[Ticks, Name]:\""
-      //write to file
-      writer.write(initString+System.lineSeparator)
-      //write to terminal lovers~
-      println(initString)
-      //for each window we logged this session:
-      for (index <- 0 until varls.windowList.size) {
-        //tell it to sort itself out (the window names... this probably isn't needed any more.)
-        val cur:WW3K_Window = varls.windowList.get(index)
-        cur.sort
-        //and build the line to output.
-        val line:String = "\"" + cur.getMostCommonTitle() + "\",\"" +
-          cur.Owner + "\",\"" +
-          cur.counter / varls.divAmt + "\",\"" +
-          cur.foCounter / varls.divAmt + "\",\"" +
-          cur.ID + "\",\"" +
-          cur.PID + "\"," +
-          cur.getAllNames
-        //write to file
-        writer.write(line+System.lineSeparator)
-        //write to terminal lovers~
-        println(line)
-      }
-      //flush the file before closing
-      writer.flush()
-      //close the file.
-      writer.close()
-      //Close the GUI
-      varls.gui.close()
-      //if the GUI is doing this shut down, then~
-      if(varls.gui.shutDown){
-        //ask if they want to shut down the whole computer, HANDLED BY OUTSIDE SCRIPT WRAPPER!
-        val n:Int = JOptionPane.showConfirmDialog(null, "Shut Down whole computer?","Shut Down whole computer?",JOptionPane.YES_NO_OPTION);
-        //if yes, Exit with 1, our sign to the script wrapper that we wanted to shut down.
-        if (n == JOptionPane.YES_OPTION) {System.exit(1)
-        } else if (n == JOptionPane.NO_OPTION) {//they said no, I have nothing to do
-        } else {//they just closed the window on me :<
-        }
-      }
-      //exit normally.
-      System.exit(0)
-    }}
+    varls.shuttingDown = true
   }
 }
