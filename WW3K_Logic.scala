@@ -43,6 +43,8 @@ class WW3K_Logic(varls:WW3K_Varls){
     if(varls.windowsProccessor.isAlive){
       varls.windowsProccessor.interrupt
     }
+    //we have to sort our list now, make it pretty for out output.
+    java.util.Collections.sort(varls.windowList)
     println("Clock = "+ varls.sleepTime+", Ticks = "+varls.ticks)
     //we should probably move this to the top list of vars/vals... second time we use it... but first is in INIT so twice in entire run...
     val format = new java.text.SimpleDateFormat("yyyy-MM-dd_HH-mm-ss")
