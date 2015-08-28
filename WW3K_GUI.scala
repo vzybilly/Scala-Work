@@ -141,8 +141,11 @@ class WW3K_GUI(varls:WW3K_Varls){
     var htmlGiantString = "<html><table border=\"1\" style=\"width:100%\">"+
       "<tr><th>Most Common Name</th><th>App Name</th><th>Time Open</th><th>Time Focused</th>"
     //If we're debugging, show the WID and PID, this is for the Headers
-    if(varls.debug){
-      htmlGiantString += "<th>Window ID</th><th>App ID</th>"
+    if(varls.debug || varls.debugWID){
+      htmlGiantString += "<th>Window ID</th>"
+    }
+    if(varls.debug || varls.debugPID){
+      htmlGiantString += "<th>App ID</th>"
     }
     //End the Header Row.
     htmlGiantString += "</tr>"
@@ -160,8 +163,13 @@ class WW3K_GUI(varls:WW3K_Varls){
     if(name.length>nameLimit){name=name.substring(0,nameLimit)}
     //add the additional names if we are DEBUGGING!
     var additionalPayload:String = ""
-    if(varls.debug){
-      additionalPayload += "<td>"+item.ID+"</td><td>"+item.PID+"</td>"
+    if(varls.debug || varls.debugWID){
+      additionalPayload += "<td>"+item.ID+"</td>"
+    }
+    if(varls.debug || varls.debugPID){
+      additionalPayload += "<td>"+item.PID+"</td>"
+    }
+    if(varls.debug || varls.debugOtherNames){
       for( index <- 0 until item.getNameCount){
         additionalPayload = additionalPayload + "<td>" + item.getNameTotal(index) + "</td>"
       }
@@ -202,8 +210,11 @@ class WW3K_GUI(varls:WW3K_Varls){
   def updateTime={
     var additionalPayload:String = ""
     //if we're debugging, add in the offset and the que size.
-    if(varls.debug){
-      additionalPayload = " Off by: " + varls.tickOffset + " Ticks. Que Size: " + varls.windowsToProccess.size
+    if(varls.debug || varls.debugTickOffset){
+      additionalPayload = additionalPayload + " Off by: " + varls.tickOffset + " Ticks."
+    }
+    if(varls.debug || varls.debugQueSize){
+      additionalPayload = additionalPayload + " Que Size: " + varls.windowsToProccess.size + "."
     }
     //update our time label.
     timeLabel.setText(timeLabelString + buildTime(varls.realTicks) + " from Ticks: " + buildTime(varls.ticks) + additionalPayload)
