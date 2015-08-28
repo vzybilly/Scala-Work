@@ -6,6 +6,7 @@ import javax.swing.JButton
 import javax.swing.JPanel
 import javax.swing.SwingUtilities
 import java.awt.BorderLayout
+import javax.swing.BoxLayout
 
 //Used to work the Debug GUI, to set and unset the debug options.
 class WW3K_Debug_GUI(varls:WW3K_Varls){
@@ -68,7 +69,17 @@ class WW3K_Debug_GUI(varls:WW3K_Varls){
   def buildMainPanel:JPanel={
     //build the panel of the window.
     val panel:JPanel = new JPanel
+    //top to bottom layout.
+    val layout:BoxLayout = new BoxLayout(panel, BoxLayout.Y_AXIS)
+    for(btn:JButton <- buildButtons){
+      panel.add(btn)
+    }
+    //do the things.
     return panel
+  }
+  def buildButtons:Array[JButton]={
+    val arr:Array[JButton] = new Array[JButton](0)
+    return arr
   }
   //button methods.
   def btnToggleMain()={
