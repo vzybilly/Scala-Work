@@ -30,6 +30,8 @@ class WW3K_GUI(varls:WW3K_Varls){
   var updateTicks:Int = 0
   //used to kill frame in the exit.
   var win:JFrame = null
+  //the debug GUI.
+  val debugger:WW3K_Debug_GUI = new WW3K_Debug_GUI(varls)
   def close()={
     if(win != null){
       SwingUtilities.invokeLater(
@@ -40,6 +42,8 @@ class WW3K_GUI(varls:WW3K_Varls){
         }
       )
     }
+    //tell the debug GUI to close it's window.
+    debugger.close
   }
   def buildLater()={
     //build the window
@@ -89,6 +93,8 @@ class WW3K_GUI(varls:WW3K_Varls){
       win.setDefaultCloseOperation(javax.swing.WindowConstants.DO_NOTHING_ON_CLOSE)
       win.setVisible(true)
     }
+    //tell the debug GUI to build itself.
+    debugger.build
   }
   //Build our GUI later and set up our time label string.
   def build(){
@@ -107,9 +113,9 @@ class WW3K_GUI(varls:WW3K_Varls){
     shutDown=true
     varls.logic.shutDownHook
   }
-  //Happens when the toggleDebugBTN is clicked, toggles DEBUG, THIS WILL SPAWN WINDOW FOR ALL THE DEBUG OPTIONS!
+  //Happens when the toggleDebugBTN is clicked, tells the debug GUI to toggle its state!
   def toggleDebug()={
-    varls.debug = !varls.debug
+    debugger.toggle
   }
   //Happens when the Name Limit Slider is moved, update our name limit.
   def sliderUpdate()={
