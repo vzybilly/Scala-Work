@@ -1,7 +1,7 @@
 //Made by vzybilly.
 //WindowWatcher3K
 
-class WW3K_Window(var base:String, tickDiff:Int, varls:WW3K_Varls){
+class WW3K_Window(var base:String, tickDiff:Int, varls:WW3K_Varls)extends Ordered[WW3K_Window]{
   //ID of this window, never changes unless window closes!
   var ID:Int = -1
   //not always present, so far, 'games' don't use correctly (Steam and Factorio...)
@@ -20,6 +20,20 @@ class WW3K_Window(var base:String, tickDiff:Int, varls:WW3K_Varls){
   var foCounter:Int = 1 + tickDiff
   //Have we been used since the last time?
   var usedLast:Boolean = true
+  //Used to sort us on the main list.
+  override def compare(other:WW3K_Window):Int={
+    //negetive is us first
+    //positive is them first
+    if(usedLast == other.usedLast){
+      return other.counter - counter
+    }
+    //one of us were used last and the other wasn't!
+    if(usedLast){//I was.
+      return -1
+    }
+    //they were.
+    return 1
+  }
   //sort our names
   def sort()=titles.sort
   //get name X priority
