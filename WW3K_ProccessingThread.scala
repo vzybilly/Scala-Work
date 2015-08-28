@@ -9,7 +9,11 @@ class WW3K_ProccessingThread(varls:WW3K_Varls) extends Thread{
     //we want this to run if we are not shutting down or while the que has items.
     while(!varls.shuttingDown || !varls.windowsToProccess.isEmpty){
       //windowsToProccess.take will wait till there in one to take!
-      current = varls.windowsToProccess.take//This now throws an exception "InterruptedException" put all of this loop body into a try!
+      try{
+        current = varls.windowsToProccess.take//This now throws an exception "InterruptedException" put all of this loop body into a try!
+      }catch{
+        case re:InterruptedException => println("!Proccessor was interrupted!"); current = null
+      }
       //reset our counter for last used windows
       lastUsed = 0
       //Go through the current window list and tell all of them that they are not the most recent.
@@ -22,7 +26,11 @@ class WW3K_ProccessingThread(varls:WW3K_Varls) extends Thread{
         varls.windowList.get(index).usedLast = false
       }
       //Build the window data from the current raw data.
-      windows = varls.logic.buildList(current)
+      if(current == null){
+        windows = new Array[WW3K_Window](0)
+      }else{
+        windows = varls.logic.buildList(current)
+      }
       //for each of our new windows, if we have it, update the old with the new, else, add it.
       for(item:WW3K_Window <- windows){
         varls.logic.addWindowtoList(item)
@@ -40,7 +48,10 @@ class WW3K_ProccessingThread(varls:WW3K_Varls) extends Thread{
         Thread.sleep(5)
       }
       //we proccess a this amount of ticks.
-      varls.proccessedTicks += current.tickDiff + 1
+      if(current!=null){
+        //We didn't actually proccess anything if current==null!
+        varls.proccessedTicks += current.tickDiff + 1
+      }
     }
   }
 }
