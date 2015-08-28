@@ -7,6 +7,7 @@ import javax.swing.JPanel
 import javax.swing.SwingUtilities
 import java.awt.BorderLayout
 import javax.swing.BoxLayout
+import java.util.ArrayList
 
 //Used to work the Debug GUI, to set and unset the debug options.
 class WW3K_Debug_GUI(varls:WW3K_Varls){
@@ -71,17 +72,54 @@ class WW3K_Debug_GUI(varls:WW3K_Varls){
     val panel:JPanel = new JPanel
     //top to bottom layout.
     val layout:BoxLayout = new BoxLayout(panel, BoxLayout.Y_AXIS)
-    for(btn:JButton <- buildButtons){
+    panel.setLayout(layout)
+    buildButtons
+    for(btn:JButton <- btnArray){
       panel.add(btn)
     }
     //do the things.
     return panel
   }
-  def buildButtons:Array[JButton]={
-    val arr:Array[JButton] = new Array[JButton](0)
-    return arr
+  var btnArray:Array[JButton] = null
+  def buildButtons={
+    var arr:ArrayList[JButton] = new ArrayList[JButton]
+    arr.add(new JButton("Tick Offset: " + varls.debugTickOffset))
+    arr.get(arr.size-1).addActionListener(actionListener(btnToggleTickOffset))
+    arr.add(new JButton("Que Size: " + varls.debugQueSize))
+    arr.get(arr.size-1).addActionListener(actionListener(btnToggleQueSize))
+    arr.add(new JButton("Window ID: " + varls.debugWID))
+    arr.get(arr.size-1).addActionListener(actionListener(btnToggleWID))
+    arr.add(new JButton("Proccess ID: " + varls.debugPID))
+    arr.get(arr.size-1).addActionListener(actionListener(btnTogglePID))
+    arr.add(new JButton("Additional Window Names: " + varls.debugOtherNames))
+    arr.get(arr.size-1).addActionListener(actionListener(btnToggleOtherNames))
+    btnArray = arr.toArray(new Array[JButton](arr.size))
   }
   //button methods.
+  def btnToggleTickOffset={
+    varls.debugTickOffset = !varls.debugTickOffset
+    btnArray(0).setText("Tick Offset: "+varls.debugTickOffset)
+  }
+  //button methods.
+  def btnToggleQueSize={
+    varls.debugQueSize = !varls.debugQueSize
+    btnArray(1).setText("Que Size: "+varls.debugQueSize)
+  }
+  //button methods.
+  def btnToggleWID={
+    varls.debugWID = !varls.debugWID
+    btnArray(2).setText("Window ID: "+varls.debugWID)
+  }
+  //button methods.
+  def btnTogglePID={
+    varls.debugPID = !varls.debugPID
+    btnArray(3).setText("Proccess ID: "+varls.debugPID)
+  }
+  //button methods.
+  def btnToggleOtherNames={
+    varls.debugOtherNames = !varls.debugOtherNames
+    btnArray(4).setText("Additional Window Names: "+varls.debugOtherNames)
+  }
   def btnToggleMain()={
     varls.debug = !varls.debug
     debugBtn.setText("Global Debug: " + varls.debug)
