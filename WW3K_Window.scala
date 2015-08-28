@@ -20,12 +20,16 @@ class WW3K_Window(var base:String, tickDiff:Int, varls:WW3K_Varls)extends Ordere
   var foCounter:Int = 1 + tickDiff
   //Have we been used since the last time?
   var usedLast:Boolean = true
-  //Used to sort us on the main list.
+  //Used to sort us on the main list. Sorts by: Last used [yes, no], counter [big, small], focusCount [big, small]
   override def compare(other:WW3K_Window):Int={
     //negetive is us first
     //positive is them first
     if(usedLast == other.usedLast){
-      return other.counter - counter
+      if(count!=other.count){
+        return other.counter - counter
+      }else{
+        return other.foCounter - foCounter
+      }
     }
     //one of us were used last and the other wasn't!
     if(usedLast){//I was.
